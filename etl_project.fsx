@@ -14,11 +14,6 @@ open System.IO
 /// <summary>
 /// Represents an Order from the Order table.
 /// </summary>
-/// <remarks>
-/// This record contains the core information about a customer order,
-/// including its unique identifier, the associated client, order date,
-/// current status, and the channel through which it was placed.
-/// </remarks>
 type Order = {
     id: int
     client_id: int
@@ -30,11 +25,6 @@ type Order = {
 /// <summary>
 /// Represents an OrderItem from the OrderItem table.
 /// </summary>
-/// <remarks>
-/// This record contains details about a specific item within an order,
-/// including the product reference, quantity ordered, price paid at purchase time,
-/// and the applicable tax percentage.
-/// </remarks>
 type OrderItem = {
     order_id: int
     product_id: int
@@ -46,10 +36,6 @@ type OrderItem = {
 /// <summary>
 /// Represents the aggregated result for output containing order totals.
 /// </summary>
-/// <remarks>
-/// This record is the primary output of the ETL transformation,
-/// containing the order identifier and its calculated financial totals.
-/// </remarks>
 type OrderSummary = {
     order_id: int
     total_amount: float
@@ -59,10 +45,6 @@ type OrderSummary = {
 /// <summary>
 /// Represents monthly and yearly aggregated statistics for orders.
 /// </summary>
-/// <remarks>
-/// This record contains aggregated financial metrics grouped by month and year,
-/// useful for trend analysis and reporting.
-/// </remarks>
 type MonthlySummary = {
     year: int
     month: int
@@ -78,12 +60,6 @@ type MonthlySummary = {
 /// <summary>
 /// Parses a string to an integer value.
 /// </summary>
-/// <param name="str">The string to parse.</param>
-/// <returns>Some value if parsing succeeds, None otherwise.</returns>
-/// <remarks>
-/// This function uses the TryParse pattern to safely convert strings to integers
-/// without throwing exceptions, making it suitable for untrusted input.
-/// </remarks>
 let parseIntOption (str: string) : int option =
     match Int32.TryParse(str) with
     | (true, value) -> Some value
@@ -92,12 +68,6 @@ let parseIntOption (str: string) : int option =
 /// <summary>
 /// Parses a string to a floating-point number.
 /// </summary>
-/// <param name="str">The string to parse.</param>
-/// <returns>Some value if parsing succeeds, None otherwise.</returns>
-/// <remarks>
-/// This function handles both integer and decimal formats, using the TryParse
-/// pattern to ensure safe conversion without exceptions.
-/// </remarks>
 let parseFloatOption (str: string) : float option =
     match Double.TryParse(str) with
     | (true, value) -> Some value
@@ -106,12 +76,6 @@ let parseFloatOption (str: string) : float option =
 /// <summary>
 /// Parses a string to a DateTime value.
 /// </summary>
-/// <param name="str">The string to parse.</param>
-/// <returns>Some value if parsing succeeds, None otherwise.</returns>
-/// <remarks>
-/// This function accepts multiple DateTime formats and uses the TryParse pattern
-/// for safe conversion. It is essential for extracting temporal information from CSV data.
-/// </remarks>
 let parseDateTimeOption (str: string) : DateTime option =
     match DateTime.TryParse(str) with
     | (true, value) -> Some value
@@ -120,37 +84,18 @@ let parseDateTimeOption (str: string) : DateTime option =
 /// <summary>
 /// Trims leading and trailing whitespace from a string.
 /// </summary>
-/// <param name="str">The string to trim.</param>
-/// <returns>The trimmed string.</returns>
-/// <remarks>
-/// This is a utility function used to clean CSV fields that may contain
-/// extraneous whitespace.
-/// </remarks>
 let trim (str: string) : string =
     str.Trim()
 
 /// <summary>
 /// Splits a CSV line by comma and trims each resulting field.
 /// </summary>
-/// <param name="line">A single line from a CSV file.</param>
-/// <returns>An array of trimmed field values.</returns>
-/// <remarks>
-/// This function assumes comma-separated values. Each field is trimmed to remove
-/// leading and trailing whitespace that may have been introduced during splitting.
-/// </remarks>
 let splitCsvLine (line: string) : string array =
     line.Split(',') |> Array.map trim
 
 /// <summary>
 /// Converts a CSV line to an Order record.
 /// </summary>
-/// <param name="line">A single line from the order CSV file.</param>
-/// <returns>Some Order if all fields parse correctly, None otherwise.</returns>
-/// <remarks>
-/// This function validates that all required fields are present and can be parsed.
-/// If any field fails to parse, the entire line is rejected, ensuring data integrity.
-/// Expected CSV format: id,client_id,order_date,status,origin
-/// </remarks>
 let lineToOrder (line: string) : Order option =
     let fields = splitCsvLine line
     if fields.Length < 5 then None
@@ -169,13 +114,6 @@ let lineToOrder (line: string) : Order option =
 /// <summary>
 /// Converts a CSV line to an OrderItem record.
 /// </summary>
-/// <param name="line">A single line from the order item CSV file.</param>
-/// <returns>Some OrderItem if all fields parse correctly, None otherwise.</returns>
-/// <remarks>
-/// This function validates that all required fields are present and can be parsed.
-/// If any field fails to parse, the entire line is rejected.
-/// Expected CSV format: order_id,product_id,quantity,price,tax
-/// </remarks>
 let lineToOrderItem (line: string) : OrderItem option =
     let fields = splitCsvLine line
     if fields.Length < 5 then None
@@ -199,38 +137,18 @@ let lineToOrderItem (line: string) : OrderItem option =
 /// <summary>
 /// Calculates the revenue for a single OrderItem.
 /// </summary>
-/// <param name="item">The OrderItem to calculate revenue for.</param>
-/// <returns>The revenue as quantity multiplied by price.</returns>
-/// <remarks>
-/// Revenue is a fundamental metric calculated as the product of quantity and unit price.
-/// This pure function has no side effects and is deterministic.
-/// </remarks>
 let calculateItemRevenue (item: OrderItem) : float =
     item.quantity * item.price
 
 /// <summary>
 /// Calculates the tax amount for a single OrderItem.
 /// </summary>
-/// <param name="item">The OrderItem to calculate tax for.</param>
-/// <returns>The tax amount as revenue multiplied by the tax percentage.</returns>
-/// <remarks>
-/// Tax is calculated as a percentage of the item's revenue.
-/// This function depends on calculateItemRevenue, demonstrating function composition.
-/// </remarks>
 let calculateItemTax (item: OrderItem) : float =
     (calculateItemRevenue item) * item.tax
 
 /// <summary>
 /// Filters orders by status and origin criteria.
 /// </summary>
-/// <param name="status">Optional status filter. None means accept all statuses.</param>
-/// <param name="origin">Optional origin filter. None means accept all origins.</param>
-/// <param name="order">The Order to evaluate.</param>
-/// <returns>True if the order matches all provided filters, false otherwise.</returns>
-/// <remarks>
-/// This function implements optional filtering logic. If a filter parameter is None,
-/// that dimension is not filtered. Comparisons are case-insensitive.
-/// </remarks>
 let filterOrdersByStatusAndOrigin (status: string option) (origin: string option) (order: Order) : bool =
     let statusMatch = match status with
                       | None -> true
@@ -242,15 +160,15 @@ let filterOrdersByStatusAndOrigin (status: string option) (origin: string option
 
 /// <summary>
 /// Performs an inner join between orders and order items.
+/// This is PHASE 2 of the ETL pipeline: explicit join operation.
 /// </summary>
-/// <param name="orders">The list of orders to join.</param>
-/// <param name="items">The list of order items to join.</param>
-/// <returns>A list of tuples containing (Order, OrderItem) pairs for matching order_ids.</returns>
 /// <remarks>
-/// This function implements a functional inner join by collecting all items
-/// that correspond to each order. Orders with no items are excluded.
+/// This function implements a functional inner join using List.collect.
+/// It returns tuples of (Order, OrderItem) for matching order_ids.
+/// Orders with no items are excluded (true inner join semantics).
+/// This satisfies Requisito Opcional 3: Inner Join in F#.
 /// </remarks>
-let innerJoinOrdersAndItems (orders: Order list) (items: OrderItem list) : (Order * OrderItem) list =
+let joinOrdersWithItems (orders: Order list) (items: OrderItem list) : (Order * OrderItem) list =
     orders
     |> List.collect (fun order ->
         items
@@ -259,15 +177,14 @@ let innerJoinOrdersAndItems (orders: Order list) (items: OrderItem list) : (Orde
     )
 
 /// <summary>
-/// Groups joined data by order_id and calculates aggregated totals.
+/// Transforms joined data into aggregated order summaries.
+/// This is PHASE 3 of the ETL pipeline: transformation and aggregation.
 /// </summary>
-/// <param name="joinedData">The list of (Order, OrderItem) tuples to aggregate.</param>
-/// <returns>A list of OrderSummary records containing calculated totals.</returns>
 /// <remarks>
-/// This function uses List.groupBy to partition data by order ID, then applies
-/// fold operations to sum revenues and taxes for each order.
+/// This function takes the output of the join and aggregates it by order_id,
+/// calculating total amounts and taxes for each order.
 /// </remarks>
-let aggregateOrderTotals (joinedData: (Order * OrderItem) list) : OrderSummary list =
+let transformJoinedData (joinedData: (Order * OrderItem) list) : OrderSummary list =
     joinedData
     |> List.groupBy (fun (order, _) -> order.id)
     |> List.map (fun (orderId, group) ->
@@ -290,37 +207,34 @@ let aggregateOrderTotals (joinedData: (Order * OrderItem) list) : OrderSummary l
 
 /// <summary>
 /// Processes the complete ETL pipeline for order aggregation.
+/// Orchestrates all three phases: Filter, Join, and Transform.
 /// </summary>
-/// <param name="orders">The list of orders to process.</param>
-/// <param name="items">The list of order items to process.</param>
-/// <param name="statusFilter">Optional status filter.</param>
-/// <param name="originFilter">Optional origin filter.</param>
-/// <returns>A sorted list of OrderSummary records.</returns>
 /// <remarks>
-/// This function orchestrates the entire transformation pipeline:
-/// 1. Filters orders based on provided criteria
-/// 2. Performs inner join with items
-/// 3. Aggregates totals by order
-/// 4. Sorts results by order ID
+/// This function demonstrates the three-phase ETL approach:
+/// Phase 1: Filter orders based on criteria
+/// Phase 2: Perform inner join with items (Requisito Opcional 3)
+/// Phase 3: Transform and aggregate the joined data
 /// </remarks>
 let processETL (orders: Order list) (items: OrderItem list) (statusFilter: string option) (originFilter: string option) : OrderSummary list =
-    orders
-    |> List.filter (filterOrdersByStatusAndOrigin statusFilter originFilter)
-    |> fun filteredOrders -> innerJoinOrdersAndItems filteredOrders items
-    |> aggregateOrderTotals
+    // Phase 1: Load & Filter Orders
+    let filteredOrders = 
+        orders
+        |> List.filter (filterOrdersByStatusAndOrigin statusFilter originFilter)
+    
+    // Phase 2: Inner Join (EXPLICIT - Requisito Opcional 3)
+    let joinedData = 
+        joinOrdersWithItems filteredOrders items
+    
+    // Phase 3: Transform & Aggregate
+    let summaries = 
+        transformJoinedData joinedData
+    
+    summaries
     |> List.sortBy (fun summary -> summary.order_id)
 
 /// <summary>
 /// Calculates monthly and yearly aggregated statistics from order summaries.
 /// </summary>
-/// <param name="orders">The list of orders to aggregate.</param>
-/// <param name="summaries">The list of OrderSummary records to process.</param>
-/// <returns>A list of MonthlySummary records grouped by year and month.</returns>
-/// <remarks>
-/// This function groups order summaries by their month and year, calculating
-/// average amounts and taxes for each period. It requires the original orders
-/// to extract date information.
-/// </remarks>
 let calculateMonthlySummaries (orders: Order list) (summaries: OrderSummary list) : MonthlySummary list =
     let orderMap = orders |> List.map (fun o -> (o.id, o)) |> Map.ofList
     
@@ -348,25 +262,19 @@ let calculateMonthlySummaries (orders: Order list) (summaries: OrderSummary list
     |> List.sortBy (fun m -> (m.year, m.month))
 
 // ============================================================================
-// SECTION 4: IMPURE I/O FUNCTIONS
+// SECTION 4: IMPURE I/O FUNCTIONS - CSV
 // ============================================================================
 
 /// <summary>
 /// Reads a CSV file and returns a list of lines, excluding the header.
 /// </summary>
-/// <param name="filePath">The path to the CSV file.</param>
-/// <returns>A list of CSV lines without the header.</returns>
-/// <remarks>
-/// This function handles file I/O errors gracefully, printing error messages
-/// and returning an empty list if the file cannot be read.
-/// </remarks>
 let readCsvFile (filePath: string) : string list =
     try
         File.ReadAllLines(filePath)
         |> Array.toList
         |> function
             | [] -> []
-            | _ :: tail -> tail  // Skip header line
+            | _ :: tail -> tail
     with
     | :? FileNotFoundException -> 
         printfn "Error: File not found: %s" filePath
@@ -378,12 +286,6 @@ let readCsvFile (filePath: string) : string list =
 /// <summary>
 /// Loads Order records from a CSV file.
 /// </summary>
-/// <param name="filePath">The path to the order CSV file.</param>
-/// <returns>A list of successfully parsed Order records.</returns>
-/// <remarks>
-/// This function reads the CSV file and applies the lineToOrder parser
-/// to each line, collecting only successfully parsed records.
-/// </remarks>
 let loadOrders (filePath: string) : Order list =
     readCsvFile filePath
     |> List.choose lineToOrder
@@ -391,12 +293,6 @@ let loadOrders (filePath: string) : Order list =
 /// <summary>
 /// Loads OrderItem records from a CSV file.
 /// </summary>
-/// <param name="filePath">The path to the order item CSV file.</param>
-/// <returns>A list of successfully parsed OrderItem records.</returns>
-/// <remarks>
-/// This function reads the CSV file and applies the lineToOrderItem parser
-/// to each line, collecting only successfully parsed records.
-/// </remarks>
 let loadOrderItems (filePath: string) : OrderItem list =
     readCsvFile filePath
     |> List.choose lineToOrderItem
@@ -404,36 +300,18 @@ let loadOrderItems (filePath: string) : OrderItem list =
 /// <summary>
 /// Converts an OrderSummary record to a CSV line.
 /// </summary>
-/// <param name="summary">The OrderSummary to convert.</param>
-/// <returns>A formatted CSV line string.</returns>
-/// <remarks>
-/// This function formats the summary with two decimal places for monetary values,
-/// ensuring consistent output format.
-/// </remarks>
 let orderSummaryToCsvLine (summary: OrderSummary) : string =
     sprintf "%d,%.2f,%.2f" summary.order_id summary.total_amount summary.total_taxes
 
 /// <summary>
 /// Converts a MonthlySummary record to a CSV line.
 /// </summary>
-/// <param name="summary">The MonthlySummary to convert.</param>
-/// <returns>A formatted CSV line string.</returns>
-/// <remarks>
-/// This function formats the monthly summary with two decimal places for monetary values
-/// and proper date formatting.
-/// </remarks>
 let monthlySummaryToCsvLine (summary: MonthlySummary) : string =
     sprintf "%04d-%02d,%.2f,%.2f,%d" summary.year summary.month summary.average_amount summary.average_taxes summary.order_count
 
 /// <summary>
 /// Writes OrderSummary records to a CSV file.
 /// </summary>
-/// <param name="filePath">The path where the CSV file should be written.</param>
-/// <param name="summaries">The list of OrderSummary records to write.</param>
-/// <remarks>
-/// This function writes the summaries with a proper CSV header and handles
-/// I/O errors gracefully.
-/// </remarks>
 let writeResultsToCsv (filePath: string) (summaries: OrderSummary list) : unit =
     try
         let header = "order_id,total_amount,total_taxes"
@@ -447,12 +325,6 @@ let writeResultsToCsv (filePath: string) (summaries: OrderSummary list) : unit =
 /// <summary>
 /// Writes MonthlySummary records to a CSV file.
 /// </summary>
-/// <param name="filePath">The path where the CSV file should be written.</param>
-/// <param name="summaries">The list of MonthlySummary records to write.</param>
-/// <remarks>
-/// This function writes monthly aggregated statistics with a proper CSV header
-/// and handles I/O errors gracefully.
-/// </remarks>
 let writeMonthlySummariesToCsv (filePath: string) (summaries: MonthlySummary list) : unit =
     try
         let header = "year-month,average_amount,average_taxes,order_count"
@@ -463,17 +335,137 @@ let writeMonthlySummariesToCsv (filePath: string) (summaries: MonthlySummary lis
     | ex ->
         printfn "Error writing to file %s: %s" filePath ex.Message
 
+// ============================================================================
+// SECTION 5: IMPURE I/O FUNCTIONS - DATABASE (Requisito Opcional 2)
+// ============================================================================
+
+/// <summary>
+/// Initializes the SQLite database and creates tables if they don't exist.
+/// This function is idempotent and safe to call multiple times.
+/// Uses sqlite3 command-line tool for database operations.
+/// </summary>
+/// <remarks>
+/// Creates two tables:
+/// - OrderSummaries: Stores aggregated order data
+/// - MonthlySummaries: Stores monthly aggregated statistics
+/// </remarks>
+let initializeDatabase (dbPath: string) : unit =
+    try
+        let sqlCommands = """
+CREATE TABLE IF NOT EXISTS OrderSummaries (
+    order_id INTEGER PRIMARY KEY,
+    total_amount REAL NOT NULL,
+    total_taxes REAL NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS MonthlySummaries (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    year INTEGER NOT NULL,
+    month INTEGER NOT NULL,
+    average_amount REAL NOT NULL,
+    average_taxes REAL NOT NULL,
+    order_count INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+"""
+        
+        // Write SQL commands to a temporary file
+        let tempSqlFile = Path.Combine(Path.GetTempPath(), "etl_init.sql")
+        File.WriteAllText(tempSqlFile, sqlCommands)
+        
+        // Execute SQL commands using sqlite3 CLI
+        let processInfo = System.Diagnostics.ProcessStartInfo()
+        processInfo.FileName <- "/bin/bash"
+        processInfo.Arguments <- sprintf "-c \"sqlite3 '%s' < '%s'\"" dbPath tempSqlFile
+        processInfo.UseShellExecute <- false
+        processInfo.RedirectStandardOutput <- true
+        processInfo.RedirectStandardError <- true
+        
+        let proc = System.Diagnostics.Process.Start(processInfo)
+        proc.WaitForExit()
+        
+        // Clean up temporary file
+        File.Delete(tempSqlFile)
+        
+        printfn "Database initialized: %s" dbPath
+    with
+    | ex ->
+        printfn "Error initializing database: %s" ex.Message
+
+/// <summary>
+/// Saves OrderSummary records to the database using sqlite3 CLI.
+/// </summary>
+let saveOrderSummariesToDatabase (dbPath: string) (summaries: OrderSummary list) : unit =
+    try
+        let sqlCommands = 
+            "DELETE FROM OrderSummaries;\n" +
+            (summaries
+            |> List.map (fun s -> 
+                sprintf "INSERT INTO OrderSummaries (order_id, total_amount, total_taxes) VALUES (%d, %.2f, %.2f);"
+                    s.order_id s.total_amount s.total_taxes)
+            |> String.concat "\n")
+        
+        let tempSqlFile = Path.Combine(Path.GetTempPath(), "etl_insert_orders.sql")
+        File.WriteAllText(tempSqlFile, sqlCommands)
+        
+        let processInfo = System.Diagnostics.ProcessStartInfo()
+        processInfo.FileName <- "/bin/bash"
+        processInfo.Arguments <- sprintf "-c \"sqlite3 '%s' < '%s'\"" dbPath tempSqlFile
+        processInfo.UseShellExecute <- false
+        processInfo.RedirectStandardOutput <- true
+        processInfo.RedirectStandardError <- true
+        
+        let proc = System.Diagnostics.Process.Start(processInfo)
+        proc.WaitForExit()
+        
+        File.Delete(tempSqlFile)
+        
+        printfn "Saved %d order summaries to database" summaries.Length
+    with
+    | ex ->
+        printfn "Error saving order summaries: %s" ex.Message
+
+/// <summary>
+/// Saves MonthlySummary records to the database using sqlite3 CLI.
+/// </summary>
+let saveMonthlySummariesToDatabase (dbPath: string) (summaries: MonthlySummary list) : unit =
+    try
+        let sqlCommands = 
+            "DELETE FROM MonthlySummaries;\n" +
+            (summaries
+            |> List.map (fun s -> 
+                sprintf "INSERT INTO MonthlySummaries (year, month, average_amount, average_taxes, order_count) VALUES (%d, %d, %.2f, %.2f, %d);"
+                    s.year s.month s.average_amount s.average_taxes s.order_count)
+            |> String.concat "\n")
+        
+        let tempSqlFile = Path.Combine(Path.GetTempPath(), "etl_insert_monthly.sql")
+        File.WriteAllText(tempSqlFile, sqlCommands)
+        
+        let processInfo = System.Diagnostics.ProcessStartInfo()
+        processInfo.FileName <- "/bin/bash"
+        processInfo.Arguments <- sprintf "-c \"sqlite3 '%s' < '%s'\"" dbPath tempSqlFile
+        processInfo.UseShellExecute <- false
+        processInfo.RedirectStandardOutput <- true
+        processInfo.RedirectStandardError <- true
+        
+        let proc = System.Diagnostics.Process.Start(processInfo)
+        proc.WaitForExit()
+        
+        File.Delete(tempSqlFile)
+        
+        printfn "Saved %d monthly summaries to database" summaries.Length
+    with
+    | ex ->
+        printfn "Error saving monthly summaries: %s" ex.Message
+
+// ============================================================================
+// SECTION 6: UTILITY FUNCTIONS
+// ============================================================================
+
 /// <summary>
 /// Parses command line arguments into optional filter parameters.
 /// </summary>
-/// <param name="args">The command line arguments array.</param>
-/// <returns>A tuple of (statusFilter option, originFilter option).</returns>
-/// <remarks>
-/// This function interprets command line arguments as filters:
-/// - No arguments: (None, None) - process all orders
-/// - One argument: (Some status, None) - filter by status only
-/// - Two or more arguments: (Some status, Some origin) - filter by both
-/// </remarks>
 let parseArguments (args: string array) : (string option * string option) =
     match args.Length with
     | 0 -> (None, None)
@@ -481,20 +473,13 @@ let parseArguments (args: string array) : (string option * string option) =
     | _ -> (Some args.[0], Some args.[1])
 
 // ============================================================================
-// SECTION 5: MAIN PROGRAM
+// SECTION 7: MAIN PROGRAM
 // ============================================================================
 
 /// <summary>
 /// Main entry point for the ETL program.
+/// Orchestrates the complete ETL pipeline with database persistence.
 /// </summary>
-/// <remarks>
-/// This function orchestrates the entire ETL process:
-/// 1. Parses command line arguments
-/// 2. Loads data from CSV files
-/// 3. Processes the ETL pipeline
-/// 4. Writes results to output files
-/// 5. Displays sample results to the console
-/// </remarks>
 let main () =
     // Parse command line arguments
     let (statusFilter, originFilter) = parseArguments fsi.CommandLineArgs.[1..]
@@ -506,7 +491,12 @@ let main () =
     | (None, Some origin) -> printfn "Processing orders with origin: %s" origin
     | (Some status, Some origin) -> printfn "Processing orders with status: %s and origin: %s" status origin
     
+    // Initialize database (Requisito Opcional 2)
+    printfn "\n--- Database Initialization ---"
+    initializeDatabase "etl.db"
+    
     // Load data from CSV files
+    printfn "\n--- Loading Data ---"
     printfn "Loading orders from order.csv..."
     let orders = loadOrders "order.csv"
     printfn "Loaded %d orders" orders.Length
@@ -516,11 +506,15 @@ let main () =
     printfn "Loaded %d order items" items.Length
     
     // Process ETL pipeline
-    printfn "Processing ETL pipeline..."
+    printfn "\n--- ETL Pipeline Execution (3 Phases) ---"
+    printfn "Phase 1: Filtering orders..."
+    printfn "Phase 2: Performing inner join (Requisito Opcional 3)..."
+    printfn "Phase 3: Transforming and aggregating..."
     let results = processETL orders items statusFilter originFilter
     printfn "Generated %d order summaries" results.Length
     
-    // Write results to output CSV
+    // Write results to CSV
+    printfn "\n--- CSV Output ---"
     writeResultsToCsv "output.csv" results
     
     // Calculate and write monthly summaries
@@ -529,15 +523,20 @@ let main () =
     writeMonthlySummariesToCsv "monthly_summary.csv" monthlySummaries
     printfn "Generated %d monthly summaries" monthlySummaries.Length
     
+    // Save to database (Requisito Opcional 2)
+    printfn "\n--- Database Persistence (Requisito Opcional 2) ---"
+    saveOrderSummariesToDatabase "etl.db" results
+    saveMonthlySummariesToDatabase "etl.db" monthlySummaries
+    
     // Print sample results
-    printfn "\nSample results (first 5 orders):"
+    printfn "\n--- Sample Results ---"
+    printfn "Sample order summaries (first 5):"
     results
     |> List.take (min 5 results.Length)
     |> List.iter (fun summary ->
         printfn "Order %d: Amount=%.2f, Taxes=%.2f" summary.order_id summary.total_amount summary.total_taxes
     )
     
-    // Print sample monthly summaries
     printfn "\nSample monthly summaries (first 5):"
     monthlySummaries
     |> List.take (min 5 monthlySummaries.Length)

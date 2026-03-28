@@ -1,5 +1,5 @@
 // ============================================================================
-// ETL Project
+// ETL Project - Comprehensive Test Suite for Pure Functions
 // Aluno: Raphael Cavalcanti Banov
 // Email: raphaelb3@al.insper.edu.br
 // ============================================================================
