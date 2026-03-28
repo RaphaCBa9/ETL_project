@@ -5,6 +5,21 @@
 **Disciplina:** Programação Funcional (Engenharia de Computação - 2026.1)
 
 ---
+## 0. Disclaimer sobre uso de LLMs e Inteligência Artificial Generativa
+
+Eu, Raphael Cavalcanti Banov, declaro e confirmo a utilização de Inteligência Artificial Generativa durante o desenvolvimento deste projeto de ETL.
+
+O código-fonte do projeto foi planejado e desenvolvido exclusivamente por mim, Raphael Cavalcanti Banov, porém com suporte de Inteligência Artificial Generativa para:
+- Revisão de sintaxe;
+- Debugging;
+- Autocompletar trechos de código repetitivos;
+- Documentação e comentários explicativos.
+
+Além do desenvolvimento de código, a Inteligência Artificial Generativa foi utilizada para:
+- Refinar a estrutura do relatório;
+- Melhorar a clareza e a organização do texto;
+- Garantir a aderência às melhores práticas de escrita técnica, ortografia, coesão e coerência.
+
 
 ## 1. Introdução
 
