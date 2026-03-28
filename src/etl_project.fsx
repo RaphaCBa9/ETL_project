@@ -508,11 +508,11 @@ let main () =
     
     // Load data from CSV files
     printfn "Loading orders from order.csv..."
-    let orders = loadOrders "order.csv"
+    let orders = loadOrders "data/order.csv"
     printfn "Loaded %d orders" orders.Length
     
     printfn "Loading order items from order_item.csv..."
-    let items = loadOrderItems "order_item.csv"
+    let items = loadOrderItems "data/order_item.csv"
     printfn "Loaded %d order items" items.Length
     
     // Process ETL pipeline
@@ -521,12 +521,12 @@ let main () =
     printfn "Generated %d order summaries" results.Length
     
     // Write results to output CSV
-    writeResultsToCsv "output.csv" results
+    writeResultsToCsv "output/output.csv" results
     
     // Calculate and write monthly summaries
     printfn "Calculating monthly summaries..."
     let monthlySummaries = calculateMonthlySummaries orders results
-    writeMonthlySummariesToCsv "monthly_summary.csv" monthlySummaries
+    writeMonthlySummariesToCsv "output/monthly_summary.csv" monthlySummaries
     printfn "Generated %d monthly summaries" monthlySummaries.Length
     
     // Print sample results

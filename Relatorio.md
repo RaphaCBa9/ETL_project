@@ -29,7 +29,7 @@ A escolha da linguagem F# e do paradigma funcional mostra-se particularmente ade
 
 ## 2. Arquitetura do Sistema
 
-O sistema foi arquitetado respeitando a separação estrita entre funções puras (lógica de negócio) e funções impuras (operações de entrada e saída). O código-fonte foi estruturado em um único arquivo de script (`etl_project.fsx`) para facilitar a execução, dividido nas seguintes seções:
+O sistema foi arquitetado respeitando a separação estrita entre funções puras (lógica de negócio) e funções impuras (operações de entrada e saída). O código-fonte foi estruturado em um único arquivo de script (`src/etl_project.fsx`) para facilitar a execução, dividido nas seguintes seções:
 
 ### 2.1 Tipos de Dados (Records)
 
@@ -42,7 +42,7 @@ Foram definidos *Records* principais para modelar o domínio da aplicação, gar
 
 ### 2.2 Helper Functions (Funções Auxiliares)
 
-Para a etapa de extração, foram implementadas funções auxiliares responsáveis por realizar o *parsing* seguro das strings provenientes dos arquivos CSV. Estas funções utilizam o tipo `option` do F# para lidar com possíveis falhas de conversão de forma elegante, sem lançar exceções.
+Para a etapa de extração, foram implementadas funções auxiliares responsáveis por realizar o *parsing* seguro das strings provenientes dos arquivos CSV. Estas funções utilizam o tipo `option` do F# para lidar com possíveis falhas de conversão sem lançar exceções.
 
 As funções `lineToOrder` e `lineToOrderItem` atuam como conversores, transformando linhas de texto bruto nos respectivos *Records* fortemente tipados.
 
@@ -92,7 +92,7 @@ Os testes garantem a robustez e a corretude do núcleo do sistema sem depender d
 
 ## 4. Fluxo de Execução (Pipeline)
 
-O pipeline principal do ETL demonstra a elegância da composição funcional através do operador *pipe* (`|>`):
+O pipeline principal do ETL segue a seguinte sequência de operações:
 
 1. Os pedidos são inicialmente filtrados com base nos parâmetros fornecidos.
 2. Ocorre o *Inner Join* entre os pedidos filtrados e todos os itens.
@@ -106,33 +106,28 @@ O pipeline principal do ETL demonstra a elegância da composição funcional atr
 
 Para processar todos os pedidos sem aplicar filtros:
 ```bash
-dotnet fsi etl_project.fsx
+dotnet fsi src/etl_project.fsx
 ```
 
 Para aplicar filtros, os parâmetros devem ser passados em ordem: `[status] [origin]`.
 Exemplo filtrando por pedidos completos e origem online:
 ```bash
-dotnet fsi etl_project.fsx Complete O
+dotnet fsi src/etl_project.fsx Complete O
 ```
 
-Os resultados serão salvos nos arquivos `output.csv` e `monthly_summary.csv`.
+Os resultados serão salvos nos arquivos `output/output.csv` e `output/monthly_summary.csv`.
 
 ### 5.2 Executando os Testes
 
 Para rodar a suíte de testes automatizados e validar as funções puras:
 ```bash
-dotnet fsi etl_tests.fsx
+dotnet fsi tests/etl_tests.fsx
 ```
 O console exibirá o status de cada teste individual e um resumo final indicando o sucesso da execução.
 
-## 6. Requisitos implementados
+## 6. Requisitos Opcionais Implementados
 
-### Obrigatórios
-- [x] Requisito Obrigatório 1: Implementação de funções puras para transformação de dados.
-- [x] Requisito Obrigatório 2: Isolamento de funções impuras para operações de I/O.
-- [x] Requisito Obrigatório 3: Utilização de funções de alta ordem (`map`, `filter`, `fold`) para processamento de listas.
-- [x] Requisito Obrigatório 4: Implementação de um pipeline de processamento utilizando o operador *pipe* (`|>`).
-### Opcionais
+- [x] Requisito Opcional 3: Realização do *Inner Join* entre as tabelas de pedidos e itens em memória.
 - [x] Requisito Opcional 5: Documentação completa utilizando *Docstrings*.
 - [x] Requisito Opcional 6: Agregação mensal e anual de receita e impostos.
 - [x] Requisito Opcional 7: Implementação de testes automatizados para funções puras.
