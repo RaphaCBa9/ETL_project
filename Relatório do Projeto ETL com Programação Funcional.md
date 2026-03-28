@@ -5,6 +5,7 @@
 **Disciplina:** Programação Funcional (Engenharia de Computação - 2026.1)
 
 ---
+
 ## 0. Disclaimer sobre uso de LLMs e Inteligência Artificial Generativa
 
 Eu, Raphael Cavalcanti Banov, declaro e confirmo a utilização de Inteligência Artificial Generativa durante o desenvolvimento deste projeto de ETL.
@@ -20,10 +21,9 @@ Além do desenvolvimento de código, a Inteligência Artificial Generativa foi u
 - Melhorar a clareza e a organização do texto;
 - Garantir a aderência às melhores práticas de escrita técnica, ortografia, coesão e coerência.
 
-
 ## 1. Introdução
 
-Este relatório descreve o desenvolvimento e a arquitetura de um projeto de ETL (Extract, Transform, Load) construído inteiramente com o paradigma de programação funcional utilizando a linguagem F#. O objetivo central do projeto é processar dados provenientes de dois arquivos CSV (pedidos e itens de pedidos), aplicar transformações funcionais puras e gerar um novo arquivo CSV contendo os valores agregados e os impostos totais de cada pedido.
+Este relatório descreve o desenvolvimento e a arquitetura de um projeto de ETL (Extract, Transform, Load) construído inteiramente com o paradigma de programação funcional utilizando a linguagem F#. O objetivo central do projeto é processar dados provenientes de dois arquivos CSV (pedidos e itens de pedidos), aplicar transformações funcionais puras e gerar arquivos de saída contendo valores agregados.
 
 A escolha da linguagem F# e do paradigma funcional mostra-se particularmente adequada para processos de ETL. A utilização de funções puras, imutabilidade e funções de alta ordem (como `map`, `filter` e `fold`) garante um processamento de dados previsível, testável e livre de efeitos colaterais na etapa de transformação.
 
@@ -33,11 +33,12 @@ O sistema foi arquitetado respeitando a separação estrita entre funções pura
 
 ### 2.1 Tipos de Dados (Records)
 
-Foram definidos três *Records* principais para modelar o domínio da aplicação, garantindo imutabilidade por padrão:
+Foram definidos *Records* principais para modelar o domínio da aplicação, garantindo imutabilidade por padrão:
 
 - `Order`: Representa um pedido, contendo `id`, `client_id`, `order_date`, `status` e `origin`.
 - `OrderItem`: Representa um item de pedido, contendo `order_id`, `product_id`, `quantity`, `price` e `tax`.
-- `OrderSummary`: Representa a saída processada, contendo `order_id`, `total_amount` e `total_taxes`.
+- `OrderSummary`: Representa a saída processada primária, contendo `order_id`, `total_amount` e `total_taxes`.
+- `MonthlySummary`: Representa as estatísticas agregadas por mês e ano.
 
 ### 2.2 Helper Functions (Funções Auxiliares)
 
@@ -57,27 +58,51 @@ Adicionalmente, foi implementada uma função `innerJoinOrdersAndItems` que real
 
 ### 2.4 Funções Impuras (I/O)
 
-As operações que interagem com o sistema de arquivos foram isoladas na seção de I/O. As funções `loadOrders` e `loadOrderItems` encapsulam a leitura dos arquivos CSV, enquanto `writeResultsToCsv` é responsável por persistir o resultado processado no disco. O isolamento dessas funções facilita a testabilidade do núcleo do sistema.
+As operações que interagem com o sistema de arquivos foram isoladas na seção de I/O. As funções `loadOrders` e `loadOrderItems` encapsulam a leitura dos arquivos CSV, enquanto `writeResultsToCsv` e `writeMonthlySummariesToCsv` são responsáveis por persistir os resultados processados no disco. O isolamento dessas funções facilita a testabilidade do núcleo do sistema.
 
-## 3. Fluxo de Execução (Pipeline)
+## 3. Requisitos Opcionais Implementados
 
-O pipeline principal do ETL, encapsulado na função `processETL`, demonstra a elegância da composição funcional através do operador *pipe* (`|>`):
+Além dos requisitos obrigatórios, foram implementados os seguintes requisitos opcionais:
+
+### 3.1 Documentação via Docstrings (Requisito Opcional 5)
+
+Todas as funções, tipos e módulos do script `etl_project.fsx` foram exaustivamente documentados utilizando o formato de *XML Docstrings* padrão do F# (tags `///`). A documentação inclui:
+- `<summary>`: Descrição concisa do propósito da função ou tipo.
+- `<param>`: Explicação detalhada de cada parâmetro de entrada.
+- `<returns>`: Descrição do valor de retorno.
+- `<remarks>`: Observações adicionais sobre o comportamento, pureza ou lógica interna da função.
+
+### 3.2 Agregação Mensal e Anual (Requisito Opcional 6)
+
+Foi implementada uma saída adicional que calcula a média de receita e impostos pagos agrupados por mês e ano.
+- **Função**: `calculateMonthlySummaries` agrupa os pedidos por `(Ano, Mês)` utilizando `List.groupBy` e calcula as médias.
+- **Saída**: Os dados são salvos automaticamente no arquivo `monthly_summary.csv` durante a execução do pipeline principal.
+- **Estrutura**: O CSV gerado contém os campos `year-month`, `average_amount`, `average_taxes` e `order_count`.
+
+### 3.3 Testes Completos para Funções Puras (Requisito Opcional 7)
+
+Foi criado um arquivo dedicado exclusivamente aos testes das funções puras (`etl_tests.fsx`). O arquivo implementa um framework de testes minimalista em F# e cobre os seguintes cenários:
+- **Parsing**: Validação das funções de conversão de tipos e extração de CSV.
+- **Cálculos**: Verificação das regras de negócio de receita e impostos.
+- **Filtros**: Testes exaustivos da lógica de filtragem com diferentes combinações (com/sem filtros, case-insensitivity).
+- **Join e Agregação**: Validação do Inner Join e das totalizações.
+- **Edge Cases**: Tratamento de listas vazias, itens com quantidade zero e impostos zerados.
+
+Os testes garantem a robustez e a corretude do núcleo do sistema sem depender de frameworks externos.
+
+## 4. Fluxo de Execução (Pipeline)
+
+O pipeline principal do ETL demonstra a elegância da composição funcional através do operador *pipe* (`|>`):
 
 1. Os pedidos são inicialmente filtrados com base nos parâmetros fornecidos.
 2. Ocorre o *Inner Join* entre os pedidos filtrados e todos os itens.
-3. Os dados combinados são agrupados por pedido e agregados para calcular os totais.
-4. O resultado final é ordenado pelo identificador do pedido para facilitar a visualização.
+3. Os dados combinados são agrupados por pedido e agregados para calcular os totais (`processETL`).
+4. Paralelamente, as agregações mensais são calculadas a partir dos resultados primários (`calculateMonthlySummaries`).
+5. Os resultados finais são exportados para os respectivos arquivos CSV.
 
-## 4. Instruções de Execução
+## 5. Instruções de Execução
 
-O projeto foi desenvolvido como um script F# (`.fsx`) e pode ser executado utilizando a ferramenta de linha de comando `dotnet fsi`.
-
-### 4.1 Pré-requisitos
-
-- .NET SDK instalado (versão 8.0 ou superior recomendada).
-- Arquivos `order.csv` e `order_item.csv` presentes no mesmo diretório do script.
-
-### 4.2 Executando o Script
+### 5.1 Executando o Pipeline ETL Principal
 
 Para processar todos os pedidos sem aplicar filtros:
 ```bash
@@ -90,13 +115,24 @@ Exemplo filtrando por pedidos completos e origem online:
 dotnet fsi etl_project.fsx Complete O
 ```
 
-Exemplo filtrando apenas por status pendente:
+Os resultados serão salvos nos arquivos `output.csv` e `monthly_summary.csv`.
+
+### 5.2 Executando os Testes
+
+Para rodar a suíte de testes automatizados e validar as funções puras:
 ```bash
-dotnet fsi etl_project.fsx Pending
+dotnet fsi etl_tests.fsx
 ```
+O console exibirá o status de cada teste individual e um resumo final indicando o sucesso da execução.
 
-O resultado será salvo no arquivo `output.csv` no mesmo diretório.
+## 6. Requisitos implementados
 
-## 5. Conclusão
-
-O projeto atende a todos os requisitos obrigatórios estabelecidos. A utilização de F# demonstrou como o paradigma funcional simplifica a implementação de pipelines de processamento de dados. A separação clara entre funções puras e impuras resultou em um código limpo, de fácil manutenção e aderente às melhores práticas de engenharia de software. O sistema está preparado para, futuramente, incorporar os requisitos opcionais propostos.
+### Obrigatórios
+- [x] Requisito Obrigatório 1: Implementação de funções puras para transformação de dados.
+- [x] Requisito Obrigatório 2: Isolamento de funções impuras para operações de I/O.
+- [x] Requisito Obrigatório 3: Utilização de funções de alta ordem (`map`, `filter`, `fold`) para processamento de listas.
+- [x] Requisito Obrigatório 4: Implementação de um pipeline de processamento utilizando o operador *pipe* (`|>`).
+### Opcionais
+- [x] Requisito Opcional 5: Documentação completa utilizando *Docstrings*.
+- [x] Requisito Opcional 6: Agregação mensal e anual de receita e impostos.
+- [x] Requisito Opcional 7: Implementação de testes automatizados para funções puras.
